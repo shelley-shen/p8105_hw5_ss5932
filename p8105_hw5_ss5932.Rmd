@@ -7,6 +7,7 @@ output: github_document
 
 ```{r setup, include = FALSE}
 library(tidyverse)
+library(ggplot2)
 
 knitr::opts_chunk$set(
   fig.width = 6,
@@ -89,21 +90,67 @@ results_df %>%
 ```
 
 
-## Problem 2 ideas ...
+## Problem 2
 
-Read in and tidy data. 
-
-```{r}
-data_1 = read_csv("lda_data/con_01.csv")
-```
+Read in data and create dataframe.
 
 ```{r, error = TRUE}
 path_df = 
   tibble(
-    path = list.files("lda_data"),
-  ) %>% 
+    path = list.files("lda_data")) %>% 
   mutate(
     path = str_c("lda_data/", path),
-    data = map(.............))
-read_csv(path_df$path[[1]])
+    data = map(.x = path, ~read_csv(.x))) %>% 
+  unnest(data)
 ```
+
+Tidy the data.
+
+```{r}
+path_tidy =
+  path_df %>% 
+  separate(path, into = c("folder", "arm"), sep = 9) %>% 
+  separate(arm, into = c("arm", "id"), sep = "_") %>% 
+  separate(id, into = c("id", "file"), sep = 2) %>% 
+  select(-folder, -file) %>% 
+  mutate(
+    id = str_remove(id, "0")) %>% 
+  pivot_longer(
+    week_1:week_8,
+    names_to = "week",
+    values_to = "value",
+    names_prefix = "week_")
+```
+
+Create a spaghetti plot showing observations on each subject over time.
+
+```{r}
+lda_plot = 
+  path_tidy %>% 
+  group_by(arm, id) %>% 
+  ggplot(
+    aes(x = week, y = value, group = id, color = id)) +
+  geom_point() +
+  geom_line() +
+  geom_point(alpha = 0.5) +
+  facet_grid(arm ~.) +
+  labs(
+    title = "Observations for control vs. experimental arms over time",
+    x = "Week of Observation",
+    y = "Values"
+  )
+```
+
+From the spaghetti plot, we see that generally, the experimental group had higher observation values than the control group. While the experimental group observations increased over time, the control group remained consistent without any significant changes overall. The consistency of the control arm is reasonable as it did not receive any treatment, and any change within the control is likely due to a placebo effect. 
+
+
+## Question 3
+
+
+
+
+
+
+
+
+
